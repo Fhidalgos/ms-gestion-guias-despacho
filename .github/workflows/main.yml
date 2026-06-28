@@ -13,7 +13,6 @@ jobs:
 build-push-deploy:
 runs-on: ubuntu-latest
 
-```
 steps:
   - name: Descargar repositorio
     uses: actions/checkout@v4
@@ -106,4 +105,3 @@ steps:
         --filter "name=ms-gestion-guias"
 
       EOF
-```
