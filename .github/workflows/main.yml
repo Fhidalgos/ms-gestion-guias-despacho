@@ -40,19 +40,12 @@ steps:
       EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
     run: |
       mkdir -p ~/.ssh
-
-      printf '%s\n' "$EC2_SSH_KEY" \
-        | tr -d '\r' \
-        > ~/.ssh/id_rsa
-
+      printf '%s\n' "$EC2_SSH_KEY" | tr -d '\r' > ~/.ssh/id_rsa
       chmod 600 ~/.ssh/id_rsa
 
   - name: Validar llave SSH
     run: |
-      ssh-keygen -y \
-        -f ~/.ssh/id_rsa \
-        > /dev/null
-
+      ssh-keygen -y -f ~/.ssh/id_rsa > /dev/null
       echo "La llave SSH tiene un formato válido"
 
   - name: Probar conexión con EC2
@@ -73,45 +66,44 @@ steps:
         -o ConnectTimeout=30 \
         -o StrictHostKeyChecking=no \
         "${{ secrets.USER_SERVER }}@${{ secrets.EC2_HOST }}" << 'EOF'
+      set -e
 
-        set -e
+      echo "Iniciando despliegue en EC2"
 
-        echo "Iniciando despliegue en EC2"
+      echo "${{ secrets.DOCKERHUB_TOKEN }}" | \
+        sudo docker login \
+          -u "${{ secrets.DOCKERHUB_USERNAME }}" \
+          --password-stdin
 
-        echo "${{ secrets.DOCKERHUB_TOKEN }}" \
-          | sudo docker login \
-            -u "${{ secrets.DOCKERHUB_USERNAME }}" \
-            --password-stdin
+      echo "Descargando imagen desde DockerHub"
 
-        echo "Descargando imagen desde DockerHub"
+      sudo docker pull \
+        "${{ secrets.DOCKERHUB_USERNAME }}/ms-gestion-guias:latest"
 
-        sudo docker pull \
-          "${{ secrets.DOCKERHUB_USERNAME }}/ms-gestion-guias:latest"
+      echo "Deteniendo contenedor anterior"
 
-        echo "Deteniendo contenedor anterior"
+      sudo docker stop ms-gestion-guias || true
+      sudo docker rm ms-gestion-guias || true
 
-        sudo docker stop ms-gestion-guias || true
-        sudo docker rm ms-gestion-guias || true
+      echo "Iniciando nuevo contenedor"
 
-        echo "Iniciando nuevo contenedor"
+      sudo docker run -d \
+        --name ms-gestion-guias \
+        --restart unless-stopped \
+        -p 8080:8080 \
+        -v /mnt/efs:/app/efs \
+        -e EFS_PATH=/app/efs \
+        -e S3_BUCKET="${{ secrets.S3_BUCKET }}" \
+        -e AWS_REGION="${{ secrets.AWS_REGION }}" \
+        -e AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
+        -e AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
+        -e AWS_SESSION_TOKEN="${{ secrets.AWS_SESSION_TOKEN }}" \
+        "${{ secrets.DOCKERHUB_USERNAME }}/ms-gestion-guias:latest"
 
-        sudo docker run -d \
-          --name ms-gestion-guias \
-          --restart unless-stopped \
-          -p 8080:8080 \
-          -v /mnt/efs:/app/efs \
-          -e EFS_PATH=/app/efs \
-          -e S3_BUCKET="${{ secrets.S3_BUCKET }}" \
-          -e AWS_REGION="${{ secrets.AWS_REGION }}" \
-          -e AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
-          -e AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
-          -e AWS_SESSION_TOKEN="${{ secrets.AWS_SESSION_TOKEN }}" \
-          "${{ secrets.DOCKERHUB_USERNAME }}/ms-gestion-guias:latest"
+      echo "Contenedor desplegado correctamente"
 
-        echo "Contenedor desplegado"
-
-        sudo docker ps \
-          --filter "name=ms-gestion-guias"
+      sudo docker ps \
+        --filter "name=ms-gestion-guias"
 
       EOF
 ```
