@@ -91,8 +91,11 @@ public class SecurityConfig {
     ) throws Exception {
 
         http
+                // Se desactiva CSRF porque se trabaja con una API REST
+                // protegida mediante tokens JWT.
                 .csrf(csrf -> csrf.disable())
 
+                // La aplicación no guardará sesiones en el servidor.
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(
                                 SessionCreationPolicy.STATELESS
@@ -101,45 +104,58 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // Endpoint exclusivo del rol consulta
+                        // Endpoint exclusivo del rol consulta.
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/guias/*/descargar"
                         ).hasRole("CONSULTA")
 
-                        // Endpoints exclusivos del rol gestión
+                        // Crear una guía.
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/guias"
                         ).hasRole("GESTION")
 
+                        // Subir una guía a S3.
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/guias/*/s3"
                         ).hasRole("GESTION")
 
+                        // Actualizar una guía.
                         .requestMatchers(
                                 HttpMethod.PUT,
                                 "/api/guias/*"
                         ).hasRole("GESTION")
 
+                        // Eliminar una guía.
                         .requestMatchers(
                                 HttpMethod.DELETE,
                                 "/api/guias/*"
                         ).hasRole("GESTION")
 
+                        // Consultar guías por fecha y transportista.
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/guias"
                         ).hasRole("GESTION")
 
-                        // Permite mostrar correctamente errores de Spring
-                        .requestMatchers("/error").permitAll()
+                        // Enviar mensajes hacia RabbitMQ.
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/mensajes"
+                        ).hasRole("GESTION")
 
-                        // Cualquier otra ruta requiere al menos autenticación
+                        // Permite mostrar correctamente los errores de Spring.
+                        .requestMatchers(
+                                "/error"
+                        ).permitAll()
+
+                        // Cualquier otra ruta necesita un usuario autenticado.
                         .anyRequest().authenticated()
                 )
 
+                // Configuración del backend como Resource Server.
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt
                                 .decoder(jwtDecoder)
@@ -152,3 +168,4 @@ public class SecurityConfig {
         return http.build();
     }
 }
+

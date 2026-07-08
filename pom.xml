@@ -52,6 +52,12 @@
             <version>${aws.sdk.version}</version>
         </dependency>
 
+        <!-- RabbitMQ y mensajes asíncronos -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
+        </dependency>
+
         <!-- Pruebas generales -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
