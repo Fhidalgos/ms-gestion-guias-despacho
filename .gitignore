@@ -38,3 +38,10 @@ build/
 *.key
 application-local.properties
 application-secret.properties
+
+# Oracle Wallet
+wallet/
+*.p12
+*.jks
+*.sso
+*.zip

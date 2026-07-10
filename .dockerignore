@@ -1,0 +1,14 @@
+target/
+.git/
+.gitignore
+.env
+wallet/
+*.pem
+*.key
+*.p12
+*.jks
+*.sso
+*.zip
+.vscode/
+.idea/
+README.md

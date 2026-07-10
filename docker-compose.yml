@@ -1,10 +1,65 @@
-services:
+﻿services:
+
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq-guias
+    restart: unless-stopped
+
     ports:
       - "5672:5672"
       - "15672:15672"
+
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: ms-gestion-guias
+    restart: unless-stopped
+
+    ports:
+      - "8080:8080"
+
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+    environment:
+      SERVER_PORT: 8080
+
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+
+      EFS_PATH: /app/efs
+
+      S3_BUCKET: ${S3_BUCKET}
+      AWS_REGION: ${AWS_REGION}
+
+      ORACLE_TNS_ALIAS: ${ORACLE_TNS_ALIAS}
+      ORACLE_WALLET_PATH: /app/wallet
+      ORACLE_USERNAME: ${ORACLE_USERNAME}
+      ORACLE_PASSWORD: ${ORACLE_PASSWORD}
+
+    volumes:
+      - /mnt/efs:/app/efs
+      - ./wallet:/app/wallet:ro
+
+
+volumes:
+  rabbitmq_data:

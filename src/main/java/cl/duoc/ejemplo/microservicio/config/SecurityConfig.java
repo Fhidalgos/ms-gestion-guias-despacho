@@ -104,7 +104,8 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // Endpoint exclusivo del rol consulta.
+                        // Descargar una guía:
+                        // solamente puede hacerlo el rol consulta.
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/guias/*/descargar"
@@ -116,7 +117,7 @@ public class SecurityConfig {
                                 "/api/guias"
                         ).hasRole("GESTION")
 
-                        // Subir una guía a S3.
+                        // Subir una guía existente a S3.
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/guias/*/s3"
@@ -140,22 +141,32 @@ public class SecurityConfig {
                                 "/api/guias"
                         ).hasRole("GESTION")
 
-                        // Enviar mensajes hacia RabbitMQ.
+                        // Enviar manualmente un mensaje a RabbitMQ.
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/mensajes"
                         ).hasRole("GESTION")
 
-                        // Permite mostrar correctamente los errores de Spring.
+                        // Consumir el siguiente mensaje de la cola 1
+                        // y guardarlo en Oracle Cloud.
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/mensajes/procesar"
+                        ).hasRole("GESTION")
+
+                        // Permite mostrar correctamente
+                        // los errores generados por Spring.
                         .requestMatchers(
                                 "/error"
                         ).permitAll()
 
-                        // Cualquier otra ruta necesita un usuario autenticado.
+                        // Cualquier otra ruta requiere
+                        // al menos un usuario autenticado.
                         .anyRequest().authenticated()
                 )
 
-                // Configuración del backend como Resource Server.
+                // Configura el backend como Resource Server,
+                // validando los tokens JWT de Azure AD B2C.
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt
                                 .decoder(jwtDecoder)
@@ -168,4 +179,3 @@ public class SecurityConfig {
         return http.build();
     }
 }
-
